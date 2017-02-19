@@ -1,0 +1,335 @@
+Red Wine Analysis 
+========================================================
+<i>by Praneetha Potiny</i>
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages
+
+library(ggplot2)
+library(corrplot)
+library(memisc)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
+# Load the Data
+red_wine <- read.csv('wineQualityReds.csv')
+```
+
+<br><br>
+This project discusses 12 attributes of red wine from a data set containing 1599 rows.
+<br><br>
+
+<h1>Univariate Plots Section</h1><hr>
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots}
+summary(red_wine)
+str(red_wine)
+
+ggplot(aes(quality), data=red_wine) + geom_histogram()
+red_wine$quality <- factor(red_wine$quality)
+```
+
+Most of the wines have a quality of 5 or 6. Since, I'm going to be measuring quality as a categorical variable, I converted it into a factor.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots2}
+ggplot(aes(fixed.acidity), data=red_wine) + geom_histogram()
+ggplot(aes(pH), data=red_wine) + geom_histogram()
+
+ggplot(aes(volatile.acidity), data=red_wine) + geom_histogram()
+```
+
+After doing research, I learned that high amounts of volatile acidity can lead to spoilage. This leads me to believe that the data-point near 1.6 should have a lower quality.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots3}
+volatile_high <- subset(red_wine, red_wine$volatile.acidity > 1.4)
+summary(volatile_high)
+```
+
+As expected, the quality is 3, the lowest in the data-set. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots5}
+ggplot(aes(citric.acid), data=red_wine) + geom_histogram()
+ggplot(aes(citric.acid), data=red_wine) + geom_histogram(binwidth = 0.01)
+```
+
+After changing the binwidth, it's easier to see that most of the wines contain citric acid at proportions of 0, 0.25, and 0.5. There are a few at the 1.00 mark, that seem strange.
+
+I'm going to take a look at those specific wines:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots6}
+citric_1 <- subset(red_wine, red_wine$citric.acid == 1.00)
+summary(citric_1)
+```
+
+There's only one object, and there does not seem to be anything else strange with the numbers.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots7}
+ggplot(aes(residual.sugar), data=red_wine) + geom_histogram()
+ggplot(aes(chlorides), data=red_wine) + geom_histogram()
+
+ggplot(aes(1/residual.sugar), data=red_wine) + geom_histogram()
+ggplot(aes(1/(chlorides+0.1)), data=red_wine) + geom_histogram()
+
+red_wine$chlo_inv <- 1/(red_wine$chlorides + 0.1)
+red_wine$sugar_inv <- 1/(red_wine$residual.sugar)
+```
+
+It looks like most of the residual sugar is between 1-3, and most of the chlorides are between 0.5-0.10. Since these two variables are highly skewed, I decided to take the inverse.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots8}
+ggplot(aes(free.sulfur.dioxide), data=red_wine) + geom_histogram()
+ggplot(aes(total.sulfur.dioxide), data=red_wine) + geom_histogram()
+ggplot(aes(sulphates), data=red_wine) + geom_histogram()
+```
+
+They all look skewed, so I'll transform the data again.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots9}
+ggplot(aes(1/(free.sulfur.dioxide^(1/3))), data=red_wine) + geom_histogram()
+ggplot(aes(1/(total.sulfur.dioxide^(1/3))), data=red_wine) + geom_histogram()
+ggplot(aes(1/sulphates), data=red_wine) + geom_histogram()
+
+red_wine$fsd_inv <- 1/(red_wine$free.sulfur.dioxide^(1/3))
+red_wine$tsd_inv <- 1/(red_wine$total.sulfur.dioxide^(1/3))
+red_wine$sul_inv <- 1/(red_wine$sulphates)
+```
+
+It seems like most of the data is highly skewed such that log transformations do not normalize the data. Taking the inverse for the sulfur dioxide amounts, skewed the data to the right, so I took the cube root before doing so.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots10}
+ggplot(aes(density), data=red_wine) + geom_histogram(binwidth = 0.0001)
+```
+
+There is very little variability between the densities.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots11}
+ggplot(aes(alcohol), data=red_wine) + geom_histogram()
+ggplot(aes(1/(alcohol^2)), data=red_wine) + geom_histogram()
+
+red_wine$alco_inv <- 1/(red_wine$alcohol^2)
+
+ggplot(aes(alcohol), data=red_wine) + geom_histogram() + facet_wrap(~quality)
+```
+
+I took the inverse of alcohol because this variable was also skewed. Using the original variable, I can see that the distribution seems to shift to the right as quality increases.
+<br><br>
+
+<h1>Univariate Analysis</h1><hr>
+
+### What is the structure of your dataset?
+* 1599 objects
+* 12 features (not including 'x' which is the ID).
+* All features are numeric except for 'quality' with a  range [3, 8]
+
+##### Key Notes
+* A data-point with high volatile acidity had a quality of 3
+* There are multiple wines in the dataset with the same contents (feature-wise in this data-set)
+* Citric acid peaks at 0, 0.25, and 0.5
+* Sulfur dioxide seems to have two peaks
+* Alcohol content seems to shift to the right as quality increases
+
+### What is/are the main feature(s) of interest in your dataset?
+The main feature of interest in this dataset is quality.
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+For now, I think alcohol content and volatile acidity will strongly help with investigating the quality of wine. Citric acid and free sulfur dioxide might also help with investigation.
+
+### Did you create any new variables from existing variables in the dataset?
+I did not create any new variables. 
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+I did a log transformation of free.sulfur.dioxide. I noticed that the graph seemed to peak before and after the '10' mark. I
+
+I also created two subsets called volatile_high and citric_1. For citric_1, I took a subset of data-points that were 100% citric acid. However, I saw that their other features were not as extreme, so I ignored it. For volatile high, I also wanted to check data-points with a high amount of volatile acidity. After researching, I discovered that these high amounts can be bad for wine. As suspected, the quality was a 3, which is the lowest possible in this data-set.
+<br><br>
+
+<h1>Bivariate Plots Section</h1><hr>
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots}
+
+corr_wine <- red_wine
+corr_wine$quality <- as.numeric(corr_wine$quality)
+
+corrplot(cor(corr_wine), method ='number', type = 'lower', tl.col = 'black', tl.srt = 20, number.cex=0.5)
+```
+
+Alcohol and volatile.acidity have moderate correlations with quality. Citric.acid has somewhat of a correlation with quality but free.sulfur.dioxide does not. There also seems to be a moderate correlation between sul_inv and quality. One thing I noticed from the plot is that density is moderately correlated with many variables on this list.
+
+Most of the inverse variables seem to have an improved correlation besides alco_inv (alcohol). The variable with the most diverse improvement in correlation was chlo_inv (chlorides). The variable that improved its correlation with quality was sul_inv (sulphates).
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots1}
+ggplot(aes(factor(quality), volatile.acidity), data=red_wine) + geom_boxplot()
+ggplot(aes(factor(quality), alcohol), data=red_wine) + geom_boxplot()
+ggplot(aes(factor(quality), citric.acid), data=red_wine) + geom_boxplot()
+ggplot(aes(factor(quality), sul_inv), data=red_wine) + geom_boxplot()
+```
+
+It seems like quality is positively correlated with alcohol content and citric acid, but negatively correlated with volatile acidity and sul_inv.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots2}
+ggplot(aes(density, alcohol), data=red_wine) + geom_point()
+ggplot(aes(density, fixed.acidity), data=red_wine) + geom_point()
+```
+
+Density seems to have a non-linear correlation with alcohol.I find it interesting that there is a moderately strong correlation betwee fixed.acidity and density. So I'm going to remove fixed acidity from density and see if that improves the density-alcohol correlation.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots3}
+red_wine$d1 <- red_wine$density - red_wine$fixed.acidity*0.001
+
+ggplot(aes(alcohol, d1), data=red_wine) + geom_point()
+
+corr_wine <- red_wine
+corr_wine$quality <- as.numeric(corr_wine$quality)
+```
+
+##### Correlation with Alcohol (Density, Modified Density)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots4}
+cor(corr_wine$alcohol,corr_wine$density)
+cor(corr_wine$alcohol,corr_wine$d1)
+```
+
+##### Correlation with Quality (Density, Modified Density)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots5}
+cor(corr_wine$quality,corr_wine$density)
+cor(corr_wine$quality,corr_wine$d1)
+```
+
+After converting fixed acidity from g/L to g/mL, I subtracted it from density. This seems to improve density's correlation with alcohol and quality.
+<br><br>
+
+<h1>Bivariate Analysis</h1><hr>
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+Quality has a positive correlation with fixed acidity and citric acid, but a negative correlation with the inverse of sulphates and volatile.acidity.
+After removing fixed acidity from the density, I observed an increase in correlation between the new variable and alcohol
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+Density had a moderate correlation with many features in this data-set, which were citric acid, residual sugar, fixed acidity and pH.
+Taking the inverse of chlorides, seems to have increased the correlation between it and alcohol.
+After creating the new variable (density - fixed.acidity), I observed correlations of at least 0.15 with every variable in the data-set except sulphates.
+I was curious about the correlation of -0.55 between volatile acidity and citric acid. From my research, I learned that citric acid was a part of the fixed acidity. However, there is only a small correlation between fixed acidity and volatile acidity.
+I was also curious about the lack of correlation between sulphates and the sulfur dioxide levels.
+
+### What was the strongest relationship you found?
+The strongest correlation I found in this data-set was about 0.79 between the inverse-transformed variables free.sulfur.dioxide and total.sulfur.dioxide.
+<br><br>
+
+<h1>Multivariate Plots Section</h1><hr>
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots}
+
+ggplot(aes(d1, pH, color=alcohol), data=red_wine) + geom_point() + scale_color_gradient(low="blue", high="red")
+
+ggplot(aes(d1, pH, color=citric.acid), data=red_wine) + geom_point() + scale_color_gradient(low="blue", high="red")
+```
+
+When comparing with the modified density, wines with high alcohol content also seem to be less dense and have a higher pH. On the other hand, wines with high amounts of citric acid have lower density and lower pH.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots2}
+ggplot(aes(d1, alcohol, color=quality), data=corr_wine) + geom_point() + scale_color_gradient(low="blue", high="red")
+
+ggplot(aes(d1, volatile.acidity, color=quality), data=corr_wine) + geom_point() + scale_color_gradient(low="blue", high="red")
+```
+
+There seems to be a moderate correlation between quality with alcohol/d1 and quality with volatile.acidity/d1.
+
+```{r echo=FALSE, Multivariate_Plots3}
+ggplot(aes(volatile.acidity, sul_inv, color=quality), data=corr_wine) + geom_point() + scale_color_gradient(low="blue", high="red")
+
+ggplot(aes(density, chlo_inv, color=alcohol), data=red_wine) + geom_point() + scale_color_gradient(low="blue", high="red")
+```
+
+There seems to be somewhat of a correlation between volatile.acidity/sul_inv and quality. However, it's unclear in the second plot, because the difference in quality could mostly be due to density. Also, the correlation doesn't seem to be very strong. The line seems to go straight across.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots4}
+ggplot(aes(d1, citric.acid, color=volatile.acidity), data=red_wine) + geom_point() + scale_color_gradient(low="blue", high="red") + facet_wrap(~quality)
+```
+
+It seems like citric.acid increases and d1 decreases while quality increases. The data at quality -- 8, has mostly blue dots and is closer to 0.985 than quality -- 3.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots5}
+ggplot(aes(factor(quality), d1), data=red_wine) + geom_boxplot()
+ggplot(aes(factor(quality), d1/volatile.acidity), data=red_wine) + geom_boxplot()
+ggplot(aes(factor(quality), d1/volatile.acidity), data=red_wine) + geom_boxplot()
+ggplot(aes(factor(quality), d1/sul_inv), data=red_wine) + geom_boxplot()
+ggplot(aes(factor(quality), d1/alcohol), data=red_wine) + geom_boxplot()
+```
+
+Aside from citric.acid, there seems to be little variation within groups.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots6}
+
+m1 <- lm(formula = quality~d1, data=corr_wine)
+m2 <- update(m1, ~. + alcohol)
+m3 <- update(m2, ~. + volatile.acidity)
+m4 <- update(m3, ~. + sul_inv)
+m5 <- update(m4, ~. + citric.acid)
+
+mtable(m1, m2, m3, m4, m5)
+```
+<br><br>
+
+<h1>Multivariate Analysis</h1><hr>
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+Yes, d1 was moderately correlated with most of the variables that were also modeterally correlated with quality. Therefore, the trends were more visible.
+
+### Were there any interesting or surprising interactions between features?
+I was not expecting a large variance within groups when I compared d1/citric.acid and quality. Although citric.acid is somewhat correlated to quality, it didn't seem like it would help predict quality as well as the other variables.
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+Yes, I created a model that predicted 40% of the data. Unfortunately, this is not a very good number. However, aside from citric.acid, each variable increased the r value by 0.1.
+<br><br>
+
+<h1>Final Plots and Summary</h1><hr>
+
+### Plot One
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_One}
+ggplot(aes(alcohol), data=red_wine) + 
+  geom_histogram() + 
+  xlab("Alcohol Content (%)") + 
+  ylab("Number of Wines") + 
+  ggtitle("Alcohol Content by Quality") + 
+  theme(plot.title = element_text(hjust=0.5, size = 15)) + 
+  facet_wrap(~quality)
+```
+
+<h4><i>Description One</i></h3>
+The distribution of alcohol content seems to shift to the right as quality increases. You can also see that most of the wines have a quality of 5 or 6. Alcohol content was one of the variables that had a left-skewed distribution.<br></br>
+
+### Plot Two
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
+ggplot(aes(alcohol, d1), data=red_wine) + 
+  geom_point(color="blue", alpha=0.1) + 
+  geom_jitter(color="blue", alpha=0.1) + 
+  ylab("Modified Density {density - fixed.acidity} (g/cm^3)") + 
+  xlab("Alcohol Content (%)") + 
+  ggtitle("Modified Density vs. Alcohol Content") + 
+  theme(plot.title = element_text(hjust=0.5, size = 15))
+```
+
+<h4><i>Description Two</i></h3>
+I created modified density from subtracting fixed acidity(g/L)*0.001 from density (g^cm3). Density already have several small-moderate correlations with most variables. This new variable improved most of those as well.
+<br></br>
+
+### Plot Three
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
+ggplot(aes(d1, volatile.acidity, color=quality+2), data=corr_wine) +
+  geom_point() + 
+  scale_color_gradient(low="blue", high="red") + 
+  xlab("Modified Density {density - fixed.acidity} (g/cm^3)") + 
+  ylab("Volatile Acidity (g/L)") + 
+  ggtitle("Volatile Acidity vs. Modified Density by Quality") + 
+  theme(plot.title = element_text(hjust=0.5, size = 15)) + 
+  labs(color="Quality")
+```
+
+<h4><i>Description Three</i></h3>
+Even though there are moderate correlations between these three variables, there still seems to be other factors at play. For example, at what point does the amount of volatile acidity completely determine the quality, without taking other factors into account? The blue dot at the top of the chart exemplifies this.
+<br><br>
+
+<h1>Reflection</h1><hr>
+The red wine data set contains 1599 rows and 12 variables (not including X, which is an id for each row). Most of the variables in the data set were heavily skewed to the left. Therefore, I had to create several new variables that were inverse-transformations of the original variables.<br>
+After looking into the correlations between all variables, I noticed that none of them produced a correlation higher than 0.8. Unless, they were inverse-transformations of each other. There were a lot variables that did not produce higher correlations even after transformation. Free sulfur dioxide and total sulfur dioxide had the highest correlation with each other, but little correlation with any other variable.<br>
+I was curious as to why the correlation between fixed.acidity and alcohol was so low, when they both had moderate correlations with density (at least 0.5). I wondered if removing fixed.acidity from density would increase the correlation between density and alcohol, and it did. This made me wonder if the variables in the data set are influencing each other, and thus, preventing strong correlations from appearing.<br>
+One limitation of this model are that most of the data points have a quality of 5 or 6. We could be making assumptions since we don't have enough data for each category. Another limitation could be that there are repeat rows. While I was looking through the data set, I noticed that there were some rows that had the exact same numbers. These rows were also usually right next to each other in the data-set. Perhaps in the next analysis, I should find a way to delete these extra rows and further research the variables that were not used in the model.
